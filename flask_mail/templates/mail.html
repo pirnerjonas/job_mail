@@ -1,0 +1,92 @@
+<!-- use inline css because many mail provider do strip external references -->
+<head>
+    <style>
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.4em;
+            font-size: 75%;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .badge-primary {
+            color: #fff;
+            background-color: #007bff;
+        }
+        .badge-warning {
+            color: #212529;
+            background-color: #ffc107;
+        }
+        .badge-info {
+            color: #fff;
+            background-color: #17a2b8;
+        }
+        .content-section {
+            background: #ffffff;
+            padding: 10px 20px;
+            border: 1px solid #dddddd;
+            border-radius: 3px;
+            margin-bottom: 20px;
+        }
+        .article-title {
+            color: #444444;
+        }
+        
+        a.article-title:hover {
+            color: #428bca;
+            text-decoration: none;
+        }
+        
+        .article-content {
+            white-space: pre-line;
+        }
+        
+        .article-metadata {
+            padding-bottom: 1px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #e3e3e3
+        }
+    </style>
+</head>
+<h3>Hey there,</h3>
+<p>I found <b>{{ num_results }}</b> new Job offerings for your search <b>{{ search_keywords }} in {{ search_location }}</b></p>
+<br>
+
+{% for job in job_data %}
+<article class="media content-section">
+    <div class="media-body">
+        <div class="article-metadata">
+            <a class="mr-2" href="#">{{ job['company_name'] }}</a>
+            <small class="text-muted">{{ job['city'] }}</small>
+            <a class="mr-2" href="#">Rating: {{ job['total']}} / {{ job['reviews']}}</a>
+            <a> Level: {{ job['rating_level']}}</a>
+            <h1></h1>
+          </div>
+          <!-- Main part of the post -->
+          <h3><a class="article-title" href="{{ ''.join(['http://', job.link]) }}">{{ job['title'] }}</a></h3>
+
+          <p class="article-content">{{ job['description_text'][:400] }}</p>
+
+          <!-- Industrie -->
+          {% set industrie_list = job.industries.split('; ') %}
+          <p>
+            {% for industrie in industrie_list %}
+              <span class="badge badge-primary">{{ industrie }}</span>            
+            {% endfor %}
+          </p>
+          <p>
+            <span class="badge badge-warning">{{ job.seniority_level }}</span>
+          </p>
+          <!-- Tfidf -->
+          {% for word, score in job['tfidf_data'].items()%}
+            <span class="badge badge-info">{{ word }}</span>
+          {% endfor %}
+    </div>
+
+    <br>
+</article>
+{% endfor %}
