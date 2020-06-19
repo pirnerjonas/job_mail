@@ -11,7 +11,7 @@ with open("config.json") as json_data_file:
 
 default_args = {
         'owner': 'airflow',
-        'start_date': datetime(2020, 6, 13)
+        'start_date': datetime(2020, 6, 17)
         }
 
 dag = DAG(dag_id='job_postings', default_args=default_args, schedule_interval='@daily')
@@ -34,9 +34,9 @@ for i, (keywords, location) in enumerate(zip(config['keywords'], config['locatio
 
    mail = BashOperator(
       task_id=f'mail_{i}',
-      bash_command= """cd ~/Documents/job_mail/flask_mail && python mail_app.py --keywords "{{params.keywords}}" --location "{{params.location}}" --username "{{params.username}}" --password "{{params.password}}" """,
+      bash_command= """cd ~/Documents/job_mail/flask_mail && python mail_app.py --keywords "{{params.keywords}}" --location "{{params.location}}" --username "{{params.username}}" --password "{{params.password}}" --recipient "{{params.recipient}}" """,
       dag=dag,
-      params={'keywords':keywords, 'location':location, 'username':config['gmail_username'], 'password':config['gmail_password']}
+      params={'keywords':keywords, 'location':location, 'username':config['gmail_username'], 'password':config['gmail_password'], 'recipient':config['recipient']}
    )
 
    scrape >> enrich >> mail

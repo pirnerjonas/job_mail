@@ -21,7 +21,24 @@ job_data['tfidf_data'] = [ast.literal_eval(job) for job in job_data['tfidf_data'
 # extract only the jobs which were posted today
 today = datetime.datetime.now()
 job_data['post_date_short'] = [job.date() for job in job_data['post_date']]
-job_data = job_data[job_data['post_date_short']==today.date()]
+job_data = job_data[job_data['post_date_short']<=today.date()]
+
+# nan to none / is easier for ifs in jinja 
+job_data = job_data.where(job_data.notnull(), None)
+
+# time pasted
+def time_pasted(date):
+    try:
+        diff_time = datetime.datetime.now() - date
+        diff_hours = round(diff_time.total_seconds()/3600)
+        if diff_hours==0:
+            return str(diff_hours/60) + 'minutes ago'
+        else:
+            return str(diff_hours) + ' hours ago'
+    except:
+        return ""
+
+job_data['time_pasted'] = [time_pasted(date) for date in job_data['post_date']]
 
 # Initiate the parser
 parser = argparse.ArgumentParser()
@@ -29,6 +46,7 @@ parser.add_argument("-k", "--keywords", dest='keywords', help="define the keywor
 parser.add_argument("-l", "--location", dest='location',help="define the location to search for", action='store')
 parser.add_argument("-u", "--username", dest='username',help="Username for gmail account", action='store')
 parser.add_argument("-p", "--password", dest='password',help="Password for gmail account", action='store')
+parser.add_argument("-r", "--recipient", dest='recipient',help="Recipient for the mail", action='store')
 
 # Read arguments from the command line
 args = parser.parse_args()
@@ -61,7 +79,7 @@ if __name__ == '__main__':
     with app.app_context():
         msg = Message(subject=f'Job offerings for {today.strftime("%Y-%m-%d %H:%M:%S")}', 
                       sender = 'jonas.pirner93@gmail.com', 
-                      recipients = ['jonas.pirner93@gmail.com'])
+                      recipients = [args.recipient])
         msg.html = render_template('mail.html', job_data=job_data, num_results=num_results, 
                                     search_keywords=args.keywords, search_location=args.location)
         mail.send(msg)
