@@ -11,7 +11,7 @@ with open("config.json") as json_data_file:
 
 default_args = {
         'owner': 'airflow',
-        'start_date': datetime(2020, 6, 17)
+        'start_date': datetime.today() - timedelta(days=1)
         }
 
 dag = DAG(dag_id='job_postings', default_args=default_args, schedule_interval='@daily')
