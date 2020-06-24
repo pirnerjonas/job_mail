@@ -21,7 +21,7 @@ job_data['tfidf_data'] = [ast.literal_eval(job) for job in job_data['tfidf_data'
 # extract only the jobs which were posted today
 today = datetime.datetime.now()
 job_data['post_date_short'] = [job.date() for job in job_data['post_date']]
-job_data = job_data[job_data['post_date_short']<=today.date()]
+job_data = job_data[job_data['post_date_short']==today.date()]
 
 # nan to none / is easier for ifs in jinja 
 job_data = job_data.where(job_data.notnull(), None)
