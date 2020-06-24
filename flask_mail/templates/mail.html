@@ -101,9 +101,9 @@
     <article class="media content-section">
         <!-- Logo -->
         {% if job.logo %}
-        <div class="crop">
-            <img src="{{ job.logo }}">
-        </div>
+            <div class="crop">
+                <img src="{{ job.logo }}">
+            </div>
         {% endif %}
 
         <div class="media-body">
@@ -120,29 +120,37 @@
 
             <!-- Rating -->
             {% if job['total']%}
-            <div>
-                <div class="container">
-                    {% set percentage = (job['total']/5)*100 %}
-                    <div class="rating" style='{{"width:" ~ percentage ~ "%"}}'><b>{{ job['total']}} / {{ job['reviews']}}</b></div>
+                <div>
+                    <div class="container">
+                        {% set percentage = (job['total']/5)*100 %}
+                        <div class="rating" style='{{"width:" ~ percentage ~ "%"}}'><b>{{ job['total']}} / {{ job['reviews']}}</b></div>
+                    </div>
+                    <small> Level: {{ job['rating_level']}}</small>
                 </div>
-                <small> Level: {{ job['rating_level']}}</small>
-            </div>
+            {%endif %}
+            
+            {% if job['industries']%}
+                <!-- Industrie -->
+                {% set industrie_list = job.industries.split('; ') %}
+                <p>
+                    {% for industrie in industrie_list %}
+                    <span class="badge badge-primary">{{ industrie }}</span>            
+                    {% endfor %}
+                </p>
             {%endif %}
 
-            <!-- Industrie -->
-            {% set industrie_list = job.industries.split('; ') %}
-            <p>
-                {% for industrie in industrie_list %}
-                <span class="badge badge-primary">{{ industrie }}</span>            
+            {% if job['seniority_level']%}
+                <p>
+                    <span class="badge badge-warning">{{ job.seniority_level }}</span>
+                </p>
+            {%endif %}
+
+            {% if job['tfidf_data']%}
+                <!-- Tfidf -->
+                {% for word, score in job['tfidf_data'].items()%}
+                    <span class="badge badge-info">{{ word }}</span>
                 {% endfor %}
-            </p>
-            <p>
-                <span class="badge badge-warning">{{ job.seniority_level }}</span>
-            </p>
-            <!-- Tfidf -->
-            {% for word, score in job['tfidf_data'].items()%}
-                <span class="badge badge-info">{{ word }}</span>
-            {% endfor %}
+            {%endif %}
 
         </div>
 
