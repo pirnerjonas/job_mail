@@ -10,14 +10,20 @@ with open("config.json") as json_data_file:
     config = json.load(json_data_file)
 
 default_args = {
-        'owner': 'airflow',
-        'start_date': datetime.today() - timedelta(days=1)
+        'owner': 'airflow'
         }
 
-dag = DAG(dag_id='job_postings', default_args=default_args, schedule_interval='@daily')
+dag = DAG(dag_id='job_postings', default_args=default_args, schedule_interval='0 18 * * *', start_date=datetime(2020,6,29))
 
+previous = None
 # create task for every search in settings
 for i, (keywords, location) in enumerate(zip(config['keywords'], config['location'])):
+
+   vpn = BashOperator(
+      task_id=f'vpn_{i}',
+      bash_command='nordvpn connect',
+      dag=dag
+   )
 
    scrape = BashOperator(
       task_id=f'crawl_{i}',
@@ -39,4 +45,8 @@ for i, (keywords, location) in enumerate(zip(config['keywords'], config['locatio
       params={'keywords':keywords, 'location':location, 'username':config['gmail_username'], 'password':config['gmail_password'], 'recipient':config['recipient']}
    )
 
-   scrape >> enrich >> mail
+   if previous:
+      previous >> vpn
+   
+   vpn >> scrape >> enrich >> mail
+   previous = mail
