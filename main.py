@@ -89,6 +89,10 @@ def get_ratings(job_df):
         if res != None:
             res['city'] = location
             res['company_name'] = company
+        try:
+            res['logo']
+        except KeyError:
+            res['logo'] = None
         results.append(res)
     percent_found = np.round((len([res for res in results if res != None]) / len(results))*100)
     print(f'For {percent_found} % information has been found')
