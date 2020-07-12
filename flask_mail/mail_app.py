@@ -15,7 +15,7 @@ company_df = pd.read_sql_table('company_ratings','sqlite:///../scraping/jobs.db'
 job_data = pd.merge(job_df, company_df, how='left', on=['company_name','city'])
 
 # sort dataframe 
-job_data = job_data.sort_values(['total','reviews','views'], ascending=False)
+job_data = job_data.sort_values(['rating'], ascending=False)
 job_data['tfidf_data'] = [ast.literal_eval(job) for job in job_data['tfidf_data']]
 
 # extract only the jobs which were posted today

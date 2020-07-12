@@ -9,6 +9,24 @@ from kununu_ratings import get_kununu_rating
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+RELEVANT_FIELDS = ['city','company_name', 'name','reviews','total','views','logo','latlon','rating_level','rating','rating_color']
+
+# company_df - stores the old entries 
+conn = sqlite3.connect('scraping/jobs.db')
+curr = conn.cursor()
+# create company rating db
+curr.execute(''' CREATE TABLE IF NOT EXISTS company_ratings (city TEXT, 
+                                                                company_name TEXT, 
+                                                                name TEXT, 
+                                                                reviews INTEGER, 
+                                                                total FLOAT, 
+                                                                views INTEGER,
+                                                                logo TEXT,
+                                                                latlon TEXT,
+                                                                rating_level TEXT,
+                                                                rating FLOAT,
+                                                                rating_color TEXT)''')
+
 
 def load_data():
     # load data from table
@@ -51,24 +69,9 @@ def job_preprocessing(job_df):
     return job_df
 
 def get_ratings(job_df):
-    RELEVANT_FIELDS = ['city','company_name', 'name','reviews','total','views','logo','latlon','rating_level']
-    # company_df - stores the old entries 
-    conn = sqlite3.connect('scraping/jobs.db')
-    curr = conn.cursor()
-    # create company rating db
-    curr.execute(''' CREATE TABLE IF NOT EXISTS company_ratings (city TEXT, 
-                                                                 company_name TEXT, 
-                                                                 name TEXT, 
-                                                                 reviews INTEGER, 
-                                                                 total FLOAT, 
-                                                                 views INTEGER,
-                                                                 logo TEXT,
-                                                                 latlon TEXT,
-                                                                 rating_level TEXT)''')
+    
     stored_companies = curr.execute(''' SELECT *
                                         FROM company_ratings ''').fetchall()
-    # print number of entries in db
-    print(f'Number of entries in searched companies db: {len(stored_companies)}')
     # convert to df
     stored_companies_df = pd.DataFrame(stored_companies, columns= RELEVANT_FIELDS)
     # tuples to search for
@@ -86,10 +89,13 @@ def get_ratings(job_df):
     # search the rating for each unique company location pair
     for company, location in tqdm(zip(search_companies_df['company_name'], search_companies_df['city'])):
         res = get_kununu_rating(company=company, location=location)
-        print(f'Company:{company}, Location:{location}, Result: {res}')
+        print(f'Company:{company}, Location:{location}')
         if res != None:
             res['city'] = location
             res['company_name'] = company
+            res['rating'] = None
+            res['rating_color'] = None
+            # some companies have no logo; the only optional field found
             try:
                 res['logo']
             except KeyError:
@@ -104,10 +110,42 @@ def get_ratings(job_df):
         return print('No information for searched companies found')
     # merge the kununu information
     company_rating_df = pd.concat([rating_df[RELEVANT_FIELDS], companies_df])
+
     # store the tuples which will be tried in db
     company_rating_df[RELEVANT_FIELDS].to_sql('company_ratings', con=conn, if_exists='append', index=False)
 
-    return company_rating_df
+def company_preprocessing():
+
+    company_df = pd.read_sql_table('company_ratings','sqlite:///scraping/jobs.db')
+
+    low_cutoff = np.percentile(company_df['reviews'], 20)
+    high_cutoff = np.percentile(company_df['reviews'], 80)
+    max_value = np.max([review for review in company_df['reviews'] if review<=high_cutoff and review >=low_cutoff])
+
+    def weighted_review_score(review):
+        ''' low and high riew number should be capped '''
+        if review <= low_cutoff:
+            return 0
+        elif review >= high_cutoff:
+            return max_value
+        else:
+            return review
+
+    company_df['weighted_reviews'] = company_df['reviews'].apply(lambda x: weighted_review_score(x))
+
+    company_df['total_percentile'] = [x/np.max(company_df.total) * 100 for x in company_df.total]
+    company_df['reviews_percentile'] = [x/np.max(company_df.weighted_reviews) * 100 for x in company_df.weighted_reviews]
+    company_df['rating'] = (company_df['total_percentile'] + company_df['reviews_percentile'])/2
+
+    # color mapping for the metric
+    # from bad to good
+    COLORS = ['#FF0000','#FF3300','#ff6600','#ff9900','#FFCC00','#FFFF00','#ccff00','#99ff00','#66ff00','#33ff00','#00FF00']
+    company_df['rating_color'] = pd.cut(company_df['rating'], 11, labels=COLORS)
+
+    company_df[RELEVANT_FIELDS].to_sql('company_ratings', con=conn, if_exists='replace', index=False)
+
+    return company_df
+
 
 def main():
     print('='*80)
@@ -115,13 +153,20 @@ def main():
     print('='*80)
     job_df = load_data()
 
-    print('Preprocessing')
+    print('Job preprocessing')
     print('='*80)
     job_df = job_preprocessing(job_df)
 
     print('Get company ratings')
     print('='*80)
-    company_df = get_ratings(job_df)
+    get_ratings(job_df)
+    print('='*80)
+    
+    print('Company preprocessing')
+    print('='*80)
+    company_df = company_preprocessing()
+
+
 
 if __name__ == "__main__":
     main()

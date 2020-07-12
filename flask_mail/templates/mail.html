@@ -21,8 +21,6 @@
             height: 20px;
             font-size: 12px;
             border-radius: 7px;
-            background-color: #3AA845;
-
         }
 
         .crop {
@@ -123,7 +121,11 @@
                 <div>
                     <div class="container">
                         {% set percentage = (job['total']/5)*100 %}
-                        <div class="rating" style='{{"width:" ~ percentage ~ "%"}}'><b>{{ job['total']}} / {{ job['reviews']}}</b></div>
+                        {% if job['rating_level']=='match' %}
+                          <div class="rating" style='{{"width:" ~ percentage ~ "%; background-color: #3AA845"}}'><b>{{ job['total']}} / {{ job['reviews']}}</b></div>
+                        {% else %}
+                          <div class="rating" style='{{"width:" ~ percentage ~ "%; background-color: #6C757D"}}'><b>{{ job['total']}} / {{ job['reviews']}}</b></div>
+                        {% endif %}
                     </div>
                     <small> Level: {{ job['rating_level']}}</small>
                 </div>
