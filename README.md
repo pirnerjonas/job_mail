@@ -1,45 +1,86 @@
 ### Job search project
 
-## How to use this repository
+This repository makes it possible to crawl, enrich and mail job postings from linkedin.
 
-- extract data with scrapy crawler
-- run `main.py` to preprocess and enrich the data
-- run the flask web app to display the results
-
-### Gather data from linkedIn 
-
-The first step of the project is to extract job offerings from linkedIn. You can run the scrapy crawl command with three parameters:
-- `keywords`: the position or job title to look for (e.g. data scientist)
-- `location`: the location of the job (e.g. Berlin)
-- `filter_time`: the time span of the job offerings to show
+![alt text](images/example.jpg)
 
 
-The command to extract all data scientist jobs in germany would look like this (run it in the `/scraping` directory):
-``` console
-scrapy crawl linkedin -a keywords="data scientist" -a location="deutschland" -a filter_time="false"
+#### How to get started
+
+In this section you will find all the preceding steps that need to be taken to ensure that the automated process works as intended.
+
+
+##### Create `config.json`
+Even though this project is designed to run fully automated it requires some information about the jobs you want to be informed by. These kind of settings are located in the `config.json` file which you have to create on your own. The file should look like this
+
+``` json
+{
+    "keywords": ["data scientist", "technical consultant"],
+    "location": ["münchen", "berlin"],
+    "gmail_username": "joe.doe@gmail.com",
+    "gmail_password": "secret password",
+    "recipient": "joe.doe@gmail.com"
+}
+
 ```
-if you wish to extract only the jobs of the last 24 hours you can use `filter_time=1`
+With the list for `keywords` you specify all the job positions you are looking for. With `location` you specify the location for a particular keyword (both list have to be the same length). So the example `config.json` file is searching for data science jobs in munich and for technical consolutant jobs in berlin. 
 
-### Preprocessing and company ratings
-The script `main.py` loads the data from the database, preprocesses it and finds ratings for new companies. 
+`gmail_username` and `gmail_password` should state the gmail account you want to use to send the job mails. To ensure you can send mails from this account you have to change a setting. Activate the switch under *Security -> Less secure app access* in order to allow access for the app. 
+
+
+##### Virtual Enviroment and Packages
+After cloning the repository create a new virtual enviroment by running the command (on a linux machine)
 
 ``` console
-python main.py
+python3 -m venv env
 ```
 
-### Send job offerings per mail
+after that activate the virtual enviroment
+
 ``` console
-python mail_app.py
+source env/bin/activate
 ```
 
-### Airflow
+the required packages for this project can be installed in this fresh enviroment via the command (this can take a while)
+
+``` console
+pip install -r requirements.txt
+```
+
+##### nltk Package
+the usage of the nltk package furthermore requires to run the following code in python
+
+``` python
+import nltk
+nltk.download('punkt')
+```
+
+##### Set up Airflow
+
+To initialize the database backend for airflow run the command
+
+``` console
+airflow initdb
+```
+
+
+After that create a folder for the Airflow DAGs and copy the DAG file for this project to the right place
+
+``` console 
+mkdir ~/airflow/dags
 cp automate.py ~/airflow/dags
-airflow scheduler
+```
 
-new terminal
+Now we can spin up an Airflow webserver and scheduler by running the following commands in **seperate** windows
+
+```
 airflow webserver
+airflow scheduler
+```
 
+And finally we can trigger and unpause the DAG file to automatically crawl, enrich and mail the jobs correspondingly to the settings in the `config.json` file
 
-
-
-airflow unpause 'job_postings' && airflow trigger_dag 'job_postings' --conf '{"keywords":"data analyst", "location":"münchen"}'
+``` console
+airflow trigger_dag 'job_postings'
+airflow unpause 'job_postings'
+```
